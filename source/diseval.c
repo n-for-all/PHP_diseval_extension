@@ -30,25 +30,34 @@ zend_module_entry diseval_module_entry = {
 	diseval_functions,
 	PHP_MINIT(diseval),
 	PHP_MSHUTDOWN(diseval),
-	PHP_RINIT(diseval),    
+	PHP_RINIT(diseval),
 	PHP_RSHUTDOWN(diseval),
-	PHP_MINFO(diseval),    
+	PHP_MINFO(diseval),
 	"0.1",
 	STANDARD_MODULE_PROPERTIES
 };
 
+PHP_INI_BEGIN()
+STD_ZEND_INI_BOOLEAN("diseval.enable", "On", PHP_INI_ALL, OnUpdateBool, enable, zend_diseval_globals, diseval_globals)
+PHP_INI_END()
+
+static void php_diseval_init_globals(zend_diseval_globals *diseval_globals)
+{
+    diseval_globals->enable = 1;
+}
 
 PHP_MINIT_FUNCTION(diseval)
 {
 	zend_execute_old = zend_execute_ex;
 	zend_execute_ex = diseval_execute_ex;
+	ZEND_INIT_MODULE_GLOBALS(swoole, php_diseval_init_globals, NULL);
 	return SUCCESS;
 }
 
 PHP_MINFO_FUNCTION(diseval)
 {
 	php_info_print_table_start();
-	php_info_print_table_row(2, "Diseval support", "enabled");
+	php_info_print_table_row(2, "Diseval support", diseval_globals->enable);
 	php_info_print_table_end();
 }
 
@@ -80,12 +89,9 @@ void diseval_execute_ex(zend_execute_data *execute_data TSRMLS_DC)
 #else
 	const zend_op_array *op_array = execute_data->op_array;
 #endif
-	if (op_array->type == ZEND_EVAL_CODE) {
+	if (op_array->type == ZEND_EVAL_CODE && diseval_globals->enable == 1) {
 		zend_error(E_ERROR, "DISEVAL - Use of eval is forbidden");
 		zend_bailout();
 	}
 	zend_execute_old(execute_data TSRMLS_CC);
 }
-
-
-
